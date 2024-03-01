@@ -1,5 +1,7 @@
 import pygame
 import random
+import threading
+import time
 
 # Dimensiones de la pantalla
 SCREEN_WIDTH = 800
@@ -59,6 +61,32 @@ class Obstacle(pygame.sprite.Sprite):
             self.rect.y = random.randrange(-100, -40)
             self.speed_y = random.randrange(1, 8)
 
+# Clase para el semáforo de control del movimiento del jugador
+class PlayerMovementSemaphore(threading.Thread):
+    def __init__(self, semaphore, delay):
+        super().__init__()
+        self.semaphore = semaphore
+        self.delay = delay
+        self.running = True
+
+    def run(self):
+        while self.running:
+            time.sleep(self.delay)
+            self.semaphore.release()
+
+# Clase para el semáforo de control del movimiento de los obstáculos
+class ObstacleMovementSemaphore(threading.Thread):
+    def __init__(self, semaphore, delay):
+        super().__init__()
+        self.semaphore = semaphore
+        self.delay = delay
+        self.running = True
+
+    def run(self):
+        while self.running:
+            time.sleep(self.delay)
+            self.semaphore.release()
+
 # Función para dibujar la pantalla
 def draw_screen(screen, all_sprites, blocks_esquivados):
     screen.fill(WHITE)
@@ -69,7 +97,6 @@ def draw_screen(screen, all_sprites, blocks_esquivados):
     pygame.display.flip()
 
 # Función principal del juego
-# Función principal del juego
 def main():
     pygame.init()
 
@@ -82,16 +109,22 @@ def main():
     player = Player()
     all_sprites.add(player)
 
-    for i in range(10):
-        obstacle = Obstacle()
-        all_sprites.add(obstacle)
-        obstacles.add(obstacle)
+    # Crear semáforo para controlar el movimiento del jugador
+    player_semaphore = threading.Semaphore(1)
+    player_movement_semaphore = PlayerMovementSemaphore(player_semaphore, 0.1)
+    player_movement_semaphore.start()
+
+    # Crear semáforo para controlar el movimiento de los obstáculos
+    obstacle_semaphore = threading.Semaphore(3)
+    obstacle_movement_semaphore = ObstacleMovementSemaphore(obstacle_semaphore, 0.5)
+    obstacle_movement_semaphore.start()
 
     clock = pygame.time.Clock()
     running = True
     score = 0
     counter = 0
     font = pygame.font.Font(None, 36)
+
     while running:
         clock.tick(60)
 
@@ -120,64 +153,11 @@ def main():
             counter += 1
             score = 0  # Restablecer la puntuación
 
-        # Función para dibujar la pantalla
-def draw_screen(screen, all_sprites, blocks_esquivados):
-    screen.fill(WHITE)
-    all_sprites.draw(screen)
-    font = pygame.font.Font(None, 36)
-    text = font.render("Bloques esquivados: " + str(blocks_esquivados * 15), True, BLACK)
-    screen.blit(text, (10, 10))
-    pygame.display.flip()
-
-# Función principal del juego
-def main():
-    pygame.init()
-
-    screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-    pygame.display.set_caption("Pygame Race Game")
-
-    all_sprites = pygame.sprite.Group()
-    obstacles = pygame.sprite.Group()
-
-    player = Player()
-    all_sprites.add(player)
-
-    for i in range(10):
-        obstacle = Obstacle()
-        all_sprites.add(obstacle)
-        obstacles.add(obstacle)
-
-    clock = pygame.time.Clock()
-    running = True
-    score = 0
-    counter = 0
-    while running:
-        clock.tick(60)
-
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
-
-        all_sprites.update()
-
-        hits = pygame.sprite.spritecollide(player, obstacles, False)
-        if hits:
-            pygame.event.post(collision_event)
-            running = False
-
-        # Comprobar si los obstáculos han pasado por debajo del jugador
-        for obstacle in obstacles:
-            if obstacle.rect.top > SCREEN_HEIGHT:
-                score += 1
-                obstacle.rect.x = random.randrange(SCREEN_WIDTH - obstacle.rect.width)
-                obstacle.rect.y = random.randrange(-100, -40)
-                obstacle.speed_y = random.randrange(1, 8)
-
-        # Comprobar si el jugador ha esquivado 15 bloques
-        if score % 15 == 0 and score > 0:
-            pygame.event.post(score_event)
-            counter += 1
-            score = 0  # Restablecer la puntuación
+        # Controlar la generación de obstáculos con semáforo
+        if obstacle_semaphore.acquire(blocking=False):
+            obstacle = Obstacle()
+            all_sprites.add(obstacle)
+            obstacles.add(obstacle)
 
         draw_screen(screen, all_sprites, counter)
 
@@ -198,139 +178,4 @@ def main():
 if __name__ == "__main__":
     main()
 
-    pygame.quit()# Función para dibujar la pantalla
-def draw_screen(screen, all_sprites, blocks_esquivados):
-    screen.fill(WHITE)
-    all_sprites.draw(screen)
-    font = pygame.font.Font(None, 36)
-    text = font.render("Bloques esquivados: " + str(blocks_esquivados * 15), True, BLACK)
-    screen.blit(text, (10, 10))
-    pygame.display.flip()
-
-# Función principal del juego
-def main():
-    pygame.init()
-
-    screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-    pygame.display.set_caption("Pygame Race Game")
-
-    all_sprites = pygame.sprite.Group()
-    obstacles = pygame.sprite.Group()
-
-    player = Player()
-    all_sprites.add(player)
-
-    for i in range(10):
-        obstacle = Obstacle()
-        all_sprites.add(obstacle)
-        obstacles.add(obstacle)
-
-    clock = pygame.time.Clock()
-    running = True
-    score = 0
-    counter = 0
-    while running:
-        clock.tick(60)
-
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
-
-        all_sprites.update()
-
-        hits = pygame.sprite.spritecollide(player, obstacles, False)
-        if hits:
-            pygame.event.post(collision_event)
-            running = False
-
-        # Comprobar si los obstáculos han pasado por debajo del jugador
-        for obstacle in obstacles:
-            if obstacle.rect.top > SCREEN_HEIGHT:
-                score += 1
-                obstacle.rect.x = random.randrange(SCREEN_WIDTH - obstacle.rect.width)
-                obstacle.rect.y = random.randrange(-100, -40)
-                obstacle.speed_y = random.randrange(1, 8)
-
-        # Comprobar si el jugador ha esquivado 15 bloques
-        if score % 15 == 0 and score > 0:
-            pygame.event.post(score_event)
-            counter += 1
-            score = 0  # Restablecer la puntuación
-
-     # Función para dibujar la pantalla
-def draw_screen(screen, all_sprites, blocks_esquivados):
-    screen.fill(WHITE)
-    all_sprites.draw(screen)
-    font = pygame.font.Font(None, 36)
-    text = font.render("Bloques esquivados: " + str(blocks_esquivados * 15), True, BLACK)
-    screen.blit(text, (10, 10))
-    pygame.display.flip()
-
-# Función principal del juego
-def main():
-    pygame.init()
-
-    screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-    pygame.display.set_caption("Pygame Race Game")
-
-    all_sprites = pygame.sprite.Group()
-    obstacles = pygame.sprite.Group()
-
-    player = Player()
-    all_sprites.add(player)
-
-    for i in range(10):
-        obstacle = Obstacle()
-        all_sprites.add(obstacle)
-        obstacles.add(obstacle)
-
-    clock = pygame.time.Clock()
-    running = True
-    score = 0
-    counter = 0
-    while running:
-        clock.tick(60)
-
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
-
-        all_sprites.update()
-
-        hits = pygame.sprite.spritecollide(player, obstacles, False)
-        if hits:
-            pygame.event.post(collision_event)
-            running = False
-
-        # Comprobar si los obstáculos han pasado por debajo del jugador
-        for obstacle in obstacles:
-            if obstacle.rect.top > SCREEN_HEIGHT:
-                score += 1
-                obstacle.rect.x = random.randrange(SCREEN_WIDTH - obstacle.rect.width)
-                obstacle.rect.y = random.randrange(-100, -40)
-                obstacle.speed_y = random.randrange(1, 8)
-
-        # Comprobar si el jugador ha esquivado 15 bloques
-        if score % 15 == 0 and score > 0:
-            pygame.event.post(score_event)
-            counter += 1
-            score = 0  # Restablecer la puntuación
-
-        # Manejo de eventos
-        for event in pygame.event.get():
-            if event.type == collision_event.type:
-                # Aquí manejas el evento de colisión
-                print("¡Colisión detectada!")
-            elif event.type == score_event.type:
-                # Aquí manejas el evento de puntaje
-                print("¡Felicidades! Llevas " + str(counter * 15) + " bloques esquivados.")
-            elif event.type == game_over_event.type:
-                # Aquí manejas el evento de fin de juego
-                print("¡Juego terminado!")
-
-        draw_screen(screen, all_sprites, counter)
-
     pygame.quit()
-
-if __name__ == "__main__":
-    main()
