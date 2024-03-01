@@ -119,15 +119,17 @@ def main():
     player = Player()
     all_sprites.add(player)
 
-    # Crear semáforo para controlar el movimiento del jugador
-    player_semaphore = threading.Semaphore(1)
-    player_movement_semaphore = PlayerMovementSemaphore(player_semaphore, 0.1)
-    player_movement_semaphore.start()
+    # Crear semáforos y hilos para controlar el movimiento del jugador
+    player_semaphores = [threading.Semaphore(1) for _ in range(10)]
+    player_movement_semaphores = [PlayerMovementSemaphore(semaphore, 0.1) for semaphore in player_semaphores]
 
-    # Crear semáforo para controlar el movimiento de los obstáculos
-    obstacle_semaphore = threading.Semaphore(3)
-    obstacle_movement_semaphore = ObstacleMovementSemaphore(obstacle_semaphore, 0.5)
-    obstacle_movement_semaphore.start()
+    # Crear semáforos y hilos para controlar el movimiento de los obstáculos
+    obstacle_semaphores = [threading.Semaphore(3) for _ in range(2)]
+    obstacle_movement_semaphores = [ObstacleMovementSemaphore(semaphore, 0.5) for semaphore in obstacle_semaphores]
+
+    # Iniciar todos los hilos
+    for semaphore in player_movement_semaphores + obstacle_movement_semaphores:
+        semaphore.start()
 
     clock = pygame.time.Clock()
     running = True
@@ -169,7 +171,7 @@ def main():
             notification1 = "¡Felicidades! Has esquivado 15 bloques."
 
         # Controlar la generación de obstáculos con semáforo
-        if obstacle_semaphore.acquire(blocking=False):
+        if any(obstacle_semaphore.acquire(blocking=False) for obstacle_semaphore in obstacle_semaphores):
             obstacle = Obstacle()
             all_sprites.add(obstacle)
             obstacles.add(obstacle)
