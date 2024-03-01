@@ -88,12 +88,21 @@ class ObstacleMovementSemaphore(threading.Thread):
             self.semaphore.release()
 
 # Función para dibujar la pantalla
-def draw_screen(screen, all_sprites, blocks_esquivados):
+def draw_screen(screen, all_sprites, blocks_esquivados, notification1, notification2, notification3):
     screen.fill(WHITE)
     all_sprites.draw(screen)
     font = pygame.font.Font(None, 36)
     text = font.render("Bloques esquivados: " + str(blocks_esquivados), True, BLACK)
     screen.blit(text, (10, 10))
+    if notification1:
+        notification_text = font.render(notification1, True, RED)
+        screen.blit(notification_text, (10, 50))
+    if notification2:
+        notification_text = font.render(notification2, True, RED)
+        screen.blit(notification_text, (10, 100))
+    if notification3:
+        notification_text = font.render(notification3, True, RED)
+        screen.blit(notification_text, (10, 150))
     pygame.display.flip()
 
 # Función principal del juego
@@ -124,6 +133,11 @@ def main():
     score = 0
     counter = 0
     font = pygame.font.Font(None, 36)
+    notification1 = ""
+    notification2 = ""
+    notification3 = ""
+
+    start_time = time.time()  # Para medir el tiempo de juego
 
     while running:
         clock.tick(60)
@@ -134,10 +148,9 @@ def main():
 
         all_sprites.update()
 
-        hits = pygame.sprite.spritecollide(player, obstacles, False)
-        if hits:
+        # Comprobar si el jugador ha colisionado con un obstáculo
+        if pygame.sprite.spritecollide(player, obstacles, False):
             pygame.event.post(collision_event)
-            running = False
 
         # Comprobar si los obstáculos han pasado por debajo del jugador
         for obstacle in obstacles:
@@ -152,6 +165,7 @@ def main():
             pygame.event.post(score_event)
             counter += 1
             score = 0  # Restablecer la puntuación
+            notification1 = "¡Felicidades! Has esquivado 15 bloques."
 
         # Controlar la generación de obstáculos con semáforo
         if obstacle_semaphore.acquire(blocking=False):
@@ -159,19 +173,24 @@ def main():
             all_sprites.add(obstacle)
             obstacles.add(obstacle)
 
-        draw_screen(screen, all_sprites, counter)
+        # Verificar el tiempo transcurrido
+        elapsed_time = time.time() - start_time
+        if elapsed_time >= 10:
+            notification2 = "¡Has jugado 10 segundos!"
+
+        draw_screen(screen, all_sprites, counter, notification1, notification2, notification3)
 
         # Manejo de eventos
         for event in pygame.event.get():
             if event.type == collision_event.type:
                 # Aquí manejas el evento de colisión
-                print("¡Colisión detectada!")
+                notification3 = "¡Colisión detectada! Continúa jugando."
             elif event.type == score_event.type:
                 # Aquí manejas el evento de puntaje
-                print("¡Felicidades! Llevas " + str(counter * 15) + " bloques esquivados.")
+                pass
             elif event.type == game_over_event.type:
                 # Aquí manejas el evento de fin de juego
-                print("¡Juego terminado!")
+                running = False
 
     pygame.quit()
 
