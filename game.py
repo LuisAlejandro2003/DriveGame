@@ -19,6 +19,9 @@ collision_event = pygame.event.Event(pygame.USEREVENT + 1)
 score_event = pygame.event.Event(pygame.USEREVENT + 2)
 game_over_event = pygame.event.Event(pygame.USEREVENT + 3)
 
+# Variable global para controlar la desaceleración
+SLOW_DOWN = False
+
 def draw_screen(screen, all_sprites, blocks_esquivados, notification1, notification2, notification3):
     screen.fill(WHITE)
     all_sprites.draw(screen)
@@ -70,7 +73,11 @@ class Obstacle(pygame.sprite.Sprite):
         self.speed_y = random.randrange(1, 8)
 
     def update(self):
-        self.rect.y += self.speed_y
+        global SLOW_DOWN
+        if SLOW_DOWN:
+            self.rect.y += self.speed_y // 2  # Reducir la velocidad a la mitad
+        else:
+            self.rect.y += self.speed_y
         if self.rect.top > SCREEN_HEIGHT + 10:
             self.rect.x = random.randrange(SCREEN_WIDTH - self.rect.width)
             self.rect.y = random.randrange(-100, -40)
@@ -169,8 +176,12 @@ def main():
 
         # Verificar el tiempo transcurrido
         elapsed_time = time.time() - start_time
-        if elapsed_time >= 10:
+        if elapsed_time >= 10 and elapsed_time < 20:
             notification2 = "¡Has jugado 10 segundos!"
+        elif elapsed_time >= 20 and elapsed_time < 30:
+            notification2 = "¡WOW! Llevas 20 segundos jugando."
+        elif elapsed_time >= 30:
+            notification2 = "¡Eres un master! Llevas 30 segundos jugando."
 
         draw_screen(screen, all_sprites, counter, notification1, notification2, notification3)
 
@@ -179,6 +190,10 @@ def main():
             if event.type == collision_event.type:
                 # Aquí manejas el evento de colisión
                 notification3 = "¡Colisión detectada! Continúa jugando."
+                SLOW_DOWN = True  # Activar la desaceleración
+                pygame.time.set_timer(pygame.USEREVENT + 4, 5000)  # Desactivar la desaceleración después de 5 segundos
+            elif event.type == pygame.USEREVENT + 4:
+                SLOW_DOWN = False  # Desactivar la desaceleración
             elif event.type == score_event.type:
                 # Aquí manejas el evento de puntaje
                 pass
