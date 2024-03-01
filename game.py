@@ -19,7 +19,23 @@ collision_event = pygame.event.Event(pygame.USEREVENT + 1)
 score_event = pygame.event.Event(pygame.USEREVENT + 2)
 game_over_event = pygame.event.Event(pygame.USEREVENT + 3)
 
-# Clase para el jugador (coche)
+def draw_screen(screen, all_sprites, blocks_esquivados, notification1, notification2, notification3):
+    screen.fill(WHITE)
+    all_sprites.draw(screen)
+    font = pygame.font.Font(None, 36)
+    text = font.render("Bloques esquivados: " + str(blocks_esquivados), True, BLACK)
+    screen.blit(text, (10, 10))
+    if notification1:
+        notification_text = font.render(notification1, True, RED)
+        screen.blit(notification_text, (10, 50))
+    if notification2:
+        notification_text = font.render(notification2, True, RED)
+        screen.blit(notification_text, (10, 100))
+    if notification3:
+        notification_text = font.render(notification3, True, RED)
+        screen.blit(notification_text, (10, 150))
+    pygame.display.flip()
+
 class Player(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
@@ -43,7 +59,6 @@ class Player(pygame.sprite.Sprite):
         if self.rect.left < 0:
             self.rect.left = 0
 
-# Clase para los obstáculos
 class Obstacle(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
@@ -61,7 +76,6 @@ class Obstacle(pygame.sprite.Sprite):
             self.rect.y = random.randrange(-100, -40)
             self.speed_y = random.randrange(1, 8)
 
-# Clase para el semáforo de control del movimiento del jugador
 class PlayerMovementSemaphore(threading.Thread):
     def __init__(self, semaphore, delay):
         super().__init__()
@@ -74,7 +88,6 @@ class PlayerMovementSemaphore(threading.Thread):
             time.sleep(self.delay)
             self.semaphore.release()
 
-# Clase para el semáforo de control del movimiento de los obstáculos
 class ObstacleMovementSemaphore(threading.Thread):
     def __init__(self, semaphore, delay):
         super().__init__()
@@ -87,25 +100,6 @@ class ObstacleMovementSemaphore(threading.Thread):
             time.sleep(self.delay)
             self.semaphore.release()
 
-# Función para dibujar la pantalla
-def draw_screen(screen, all_sprites, blocks_esquivados, notification1, notification2, notification3):
-    screen.fill(WHITE)
-    all_sprites.draw(screen)
-    font = pygame.font.Font(None, 36)
-    text = font.render("Bloques esquivados: " + str(blocks_esquivados), True, BLACK)
-    screen.blit(text, (10, 10))
-    if notification1:
-        notification_text = font.render(notification1, True, RED)
-        screen.blit(notification_text, (10, 50))
-    if notification2:
-        notification_text = font.render(notification2, True, RED)
-        screen.blit(notification_text, (10, 100))
-    if notification3:
-        notification_text = font.render(notification3, True, RED)
-        screen.blit(notification_text, (10, 150))
-    pygame.display.flip()
-
-# Función principal del juego
 def main():
     pygame.init()
 
@@ -196,5 +190,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-    pygame.quit()
