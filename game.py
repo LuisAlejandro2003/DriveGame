@@ -173,9 +173,10 @@ def main():
             counter += 1
             score = 0        # Restablecer la puntuación
             notification1 = "¡Felicidades! Has esquivado 15 bloques."
-            barrier = Barrier()      # Creación de barrera
-            all_sprites.add(barrier)
-            barriers.add(barrier)
+            for _ in range(3):  # Creación de 3 barreras
+                barrier = Barrier()
+                all_sprites.add(barrier)
+                barriers.add(barrier)
 
         if any(obstacle_semaphore.acquire(blocking=False) for obstacle_semaphore in obstacle_semaphores):    # Controlar la generación de obstáculos con semáforo
             obstacle = Obstacle()
