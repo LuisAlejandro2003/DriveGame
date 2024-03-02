@@ -3,23 +3,19 @@ import random
 import threading
 import time
 
-# Dimensiones de la pantalla
-SCREEN_WIDTH = 800
+SCREEN_WIDTH = 800      # Dimensiones de la pantalla
 SCREEN_HEIGHT = 600
 
-# Colores
 WHITE = (255, 255, 255)
 RED = (255, 0, 0)
 GREEN = (0, 255, 0)
 BLUE = (0, 0, 255)
 BLACK = (0, 0, 0)
 
-# Eventos
 collision_event = pygame.event.Event(pygame.USEREVENT + 1)
-score_event = pygame.event.Event(pygame.USEREVENT + 2)
+score_event = pygame.event.Event(pygame.USEREVENT + 2)      # Creación de eventos
 game_over_event = pygame.event.Event(pygame.USEREVENT + 3)
 
-# Variable global para controlar la desaceleración
 SLOW_DOWN = False
 
 def draw_screen(screen, all_sprites, blocks_esquivados, notification1, notification2, notification3):
@@ -39,7 +35,7 @@ def draw_screen(screen, all_sprites, blocks_esquivados, notification1, notificat
         screen.blit(notification_text, (10, 150))
     pygame.display.flip()
 
-class Player(pygame.sprite.Sprite):
+class Player(pygame.sprite.Sprite):    # Clase para el jugadorcito
     def __init__(self):
         super().__init__()
         self.image = pygame.Surface((50, 50))
@@ -61,8 +57,7 @@ class Player(pygame.sprite.Sprite):
             self.rect.right = SCREEN_WIDTH
         if self.rect.left < 0:
             self.rect.left = 0
-
-class Obstacle(pygame.sprite.Sprite):
+class Obstacle(pygame.sprite.Sprite):    # Clase para el obstaculito en el jueguito
     def __init__(self):
         super().__init__()
         self.image = pygame.Surface((50, 50))
@@ -82,8 +77,7 @@ class Obstacle(pygame.sprite.Sprite):
             self.rect.x = random.randrange(SCREEN_WIDTH - self.rect.width)
             self.rect.y = random.randrange(-100, -40)
             self.speed_y = random.randrange(1, 8)
-
-class PlayerMovementSemaphore(threading.Thread):
+class PlayerMovementSemaphore(threading.Thread): # Clasesita de un hilito para controlar el movimiento del jugador
     def __init__(self, semaphore, delay):
         super().__init__()
         self.semaphore = semaphore
@@ -95,7 +89,7 @@ class PlayerMovementSemaphore(threading.Thread):
             time.sleep(self.delay)
             self.semaphore.release()
 
-class ObstacleMovementSemaphore(threading.Thread):
+class ObstacleMovementSemaphore(threading.Thread):   # Clasesita de un hilito para controlar el movimiento de los obstáculos
     def __init__(self, semaphore, delay):
         super().__init__()
         self.semaphore = semaphore
@@ -106,8 +100,22 @@ class ObstacleMovementSemaphore(threading.Thread):
         while self.running:
             time.sleep(self.delay)
             self.semaphore.release()
+class Barrier(pygame.sprite.Sprite):    # Clase para la barrerita
+    def __init__(self):
+        super().__init__()
+        self.image = pygame.Surface((50, 50))
+        self.image.fill(BLUE)
+        self.rect = self.image.get_rect()
+        self.rect.x = random.randrange(SCREEN_WIDTH - self.rect.width)
+        self.rect.y = -50
+        self.speed_y = 5
 
-def main():
+    def update(self):
+        self.rect.y += self.speed_y
+        if self.rect.top > SCREEN_HEIGHT:
+            self.kill()
+
+def main(): 
     pygame.init()
 
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
@@ -115,16 +123,15 @@ def main():
 
     all_sprites = pygame.sprite.Group()
     obstacles = pygame.sprite.Group()
+    barriers = pygame.sprite.Group()  # Nuevo grupo para las barreras
 
     player = Player()
     all_sprites.add(player)
 
-    # Crear semáforos y hilos para controlar el movimiento del jugador
-    player_semaphores = [threading.Semaphore(1) for _ in range(10)]
+    player_semaphores = [threading.Semaphore(1) for _ in range(10)]     # Creacióncita de semáforos y hilos para controlar el movimiento del jugador
     player_movement_semaphores = [PlayerMovementSemaphore(semaphore, 0.1) for semaphore in player_semaphores]
 
-    # Crear semáforos y hilos para controlar el movimiento de los obstáculos
-    obstacle_semaphores = [threading.Semaphore(3) for _ in range(2)]
+    obstacle_semaphores = [threading.Semaphore(3) for _ in range(2)]    # Creación de semáforos y hilos para controlar el movimiento de los obstáculos
     obstacle_movement_semaphores = [ObstacleMovementSemaphore(semaphore, 0.5) for semaphore in obstacle_semaphores]
 
     # Iniciar todos los hilos
@@ -140,7 +147,7 @@ def main():
     notification2 = ""
     notification3 = ""
 
-    start_time = time.time()  # Para medir el tiempo de juego
+    start_time = time.time()  #  Medir el tiempo de juego
 
     while running:
         clock.tick(60)
@@ -151,33 +158,31 @@ def main():
 
         all_sprites.update()
 
-        # Comprobar si el jugador ha colisionado con un obstáculo
-        if pygame.sprite.spritecollide(player, obstacles, False):
+        if pygame.sprite.spritecollide(player, obstacles, False):    # Si el jugador ha colisionado con un obstáculo
             pygame.event.post(collision_event)
 
-        # Comprobar si los obstáculos han pasado por debajo del jugador
-        for obstacle in obstacles:
+        for obstacle in obstacles:                # Si los obstáculos han pasado por debajo del jugador
             if obstacle.rect.top > SCREEN_HEIGHT:
                 score += 1
                 obstacle.rect.x = random.randrange(SCREEN_WIDTH - obstacle.rect.width)
                 obstacle.rect.y = random.randrange(-100, -40)
                 obstacle.speed_y = random.randrange(1, 8)
 
-        # Comprobar si el jugador ha esquivado 15 bloques
-        if score % 15 == 0 and score > 0:
+        if score % 15 == 0 and score > 0:         # Comprobar si el jugador ha esquivado 15 bloques
             pygame.event.post(score_event)
             counter += 1
-            score = 0  # Restablecer la puntuación
+            score = 0        # Restablecer la puntuación
             notification1 = "¡Felicidades! Has esquivado 15 bloques."
+            barrier = Barrier()      # Creación de barrera
+            all_sprites.add(barrier)
+            barriers.add(barrier)
 
-        # Controlar la generación de obstáculos con semáforo
-        if any(obstacle_semaphore.acquire(blocking=False) for obstacle_semaphore in obstacle_semaphores):
+        if any(obstacle_semaphore.acquire(blocking=False) for obstacle_semaphore in obstacle_semaphores):    # Controlar la generación de obstáculos con semáforo
             obstacle = Obstacle()
             all_sprites.add(obstacle)
             obstacles.add(obstacle)
 
-        # Verificar el tiempo transcurrido
-        elapsed_time = time.time() - start_time
+        elapsed_time = time.time() - start_time         # Tiempo transcurrido
         if elapsed_time >= 10 and elapsed_time < 20:
             notification2 = "¡Has jugado 10 segundos!"
         elif elapsed_time >= 20 and elapsed_time < 30:
@@ -186,22 +191,20 @@ def main():
             notification2 = "¡Eres un master! Llevas 30 segundos jugando."
 
         draw_screen(screen, all_sprites, counter, notification1, notification2, notification3)
-
-        # Manejo de eventos
         for event in pygame.event.get():
-            if event.type == collision_event.type:
-                # Aquí manejas el evento de colisión
+            if event.type == collision_event.type:                          # Eventito de colisión
                 notification3 = "¡Colisión detectada! Continúa jugando."
-                SLOW_DOWN = True  # Activar la desaceleración
-                pygame.time.set_timer(pygame.USEREVENT + 4, 5000)  # Desactivar la desaceleración después de 5 segundos
+                SLOW_DOWN = True                                            # Actitititititivación de la desaceleración
+                pygame.time.set_timer(pygame.USEREVENT + 4, 5000)           # Desactivar la desaceleración después de 5 segundos
             elif event.type == pygame.USEREVENT + 4:
-                SLOW_DOWN = False  # Desactivar la desaceleración
-            elif event.type == score_event.type:
-                # Aquí manejas el evento de puntaje
+                SLOW_DOWN = False  
+            elif event.type == score_event.type:          # Eventito de puntaje
                 pass
             elif event.type == game_over_event.type:
-                # Aquí manejas el evento de fin de juego
                 running = False
+       
+        if pygame.sprite.spritecollide(player, barriers, True):  # Usito de barrera cuando colisiona con bloquecito azul
+            running = False
 
     pygame.quit()
 
