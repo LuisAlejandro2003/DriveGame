@@ -1,40 +1,29 @@
 import socket
-import threading
 import pygame
 import sys
-import random
 from model import Ball, Paddle, SCREEN_WIDTH, SCREEN_HEIGHT
 from view import init_screen, draw
 
-# Crear el servidor
-server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-server.bind(('localhost', 55556))  
-server.listen()
+# Crear el cliente
+client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+client.connect(('localhost', 55556))
 
-clients = []
-players = []
-
-def broadcast(message):
-    for client in clients:
-        client.send(message)
-
-def handle_client(client):
+def receive():
     while True:
         try:
-            message = client.recv(1024)
-            broadcast(message)
+            message = client.recv(1024).decode('ascii')
+            score_paddle1, score_paddle2 = map(int, message.split())
+    
         except:
-            index = clients.index(client)
-            clients.remove(client)
+            print('Error! Could not receive message.')
             client.close()
-            players.remove(players[index])
-            broadcast(f'Player {index} left the game!'.encode('ascii'))
             break
 
 def reset_ball(ball):
-    ball.rect.center = (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2)
-    ball.speed_x = random.choice([5, -5])
-    ball.speed_y = random.choice([5, -5])
+    ball.rect.x = SCREEN_WIDTH / 2
+    ball.rect.y = SCREEN_HEIGHT / 2
+    ball.speed_x = -ball.speed_x
+    ball.speed_y = -ball.speed_y
 
 def main():
     screen = init_screen()
@@ -59,13 +48,17 @@ def main():
                 elif event.key == pygame.K_DOWN:
                     paddle2.speed_y = 5
                 elif event.key == pygame.K_w:
-                    paddle1.speed_y = -5
+                    client.send('w_down'.encode('ascii'))  # Enviar 'w_down' en lugar de 'w'
                 elif event.key == pygame.K_s:
-                    paddle1.speed_y = 5
+                    client.send('s_down'.encode('ascii'))  # Enviar 's_down' en lugar de 's'
             elif event.type == pygame.KEYUP:
                 if event.key == pygame.K_UP or event.key == pygame.K_DOWN:
                     paddle2.speed_y = 0
-                elif event.key == pygame.K_w or event.key == pygame.K_s:
+                elif event.key == pygame.K_w:
+                    client.send('w_up'.encode('ascii'))  # Enviar 'w_up' cuando se suelta la tecla 'w'
+                    paddle1.speed_y = 0
+                elif event.key == pygame.K_s:
+                    client.send('s_up'.encode('ascii'))  # Enviar 's_up' cuando se suelta la tecla 's'
                     paddle1.speed_y = 0
         all_sprites.update()
         hits = pygame.sprite.spritecollide(ball, paddles, False)
@@ -81,8 +74,6 @@ def main():
             running = False
         draw(screen, all_sprites, score_paddle1, score_paddle2)
         clock.tick(60)
-        for client in clients:
-            client.send(f'{score_paddle1} {score_paddle2}'.encode('ascii'))
     pygame.quit()
     sys.exit()
 
